@@ -158,7 +158,9 @@ input {
 <h3>🔍 Order Lookup</h3>
 
 <input id="lookupInput" placeholder="Enter Order ID">
-<button class="search" onclick="searchOrder()">Search</button>
+
+<button class="search" id="searchBtn" onclick="searchOrder()">Search</button>
+<button class="stop" onclick="clearSearch()">Clear</button>
 
 <div id="lookupResult" class="lookup-result"></div>
 </div>
@@ -286,6 +288,10 @@ function searchOrder(){
 let order=document.getElementById("lookupInput").value.trim();
 if(!order){alert("Enter Order ID");return;}
 
+let btn=document.getElementById("searchBtn");
+btn.innerText="Wait...";
+btn.disabled=true;
+
 fetch(API_URL+"?type=lookup&order_id="+encodeURIComponent(order))
 .then(res=>res.json())
 .then(data=>{
@@ -293,12 +299,19 @@ fetch(API_URL+"?type=lookup&order_id="+encodeURIComponent(order))
 let box=document.getElementById("lookupResult");
 box.innerHTML="";
 
+btn.innerText="Search";
+btn.disabled=false;
+
 if(!data.length){
   box.innerHTML="No Data Found";
   return;
 }
 
+let totalQty=0;
+
 data.forEach(item=>{
+  totalQty+=Number(item.qty)||0;
+
   box.innerHTML+=`
   <div class="lookup-item">
     <b>${item.order_id}</b><br>
@@ -308,7 +321,24 @@ data.forEach(item=>{
   </div>`;
 });
 
+// ✅ TOTAL SHOW
+box.innerHTML+=`
+<div style="padding:10px;font-weight:bold;">
+Total Qty: ${totalQty}
+</div>`;
+
+})
+.catch(()=>{
+  btn.innerText="Search";
+  btn.disabled=false;
 });
+
+}
+
+// ❌ CLEAR
+function clearSearch(){
+document.getElementById("lookupInput").value="";
+document.getElementById("lookupResult").innerHTML="";
 }
 
 // AUTO REFRESH
