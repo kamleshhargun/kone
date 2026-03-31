@@ -7,11 +7,22 @@
 <style>
 body { font-family: Arial; text-align:center; }
 
-#reader { width:300px; margin:auto; }
+#reader {
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+}
 
-button { padding:10px 20px; margin:10px; }
+#reader video {
+  width: 100% !important;
+  height: 250px !important;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
-#status { font-weight:bold; margin:10px; }
+button { padding: 10px 20px; margin: 10px; }
+
+#status { font-weight: bold; margin: 10px; }
 
 #dashboard {
   background:#f5f5f5;
@@ -27,7 +38,7 @@ button { padding:10px 20px; margin:10px; }
 
 <!-- DASHBOARD -->
 <div id="dashboard">
-  <b>📊 Dashboard</b><br>
+  <b>📊 Today Dashboard</b><br>
   Pickup: <span id="pickupCount">0</span> |
   Return: <span id="returnCount">0</span>
 </div>
@@ -51,7 +62,7 @@ let step = 1;
 let orderId = "";
 let tracking = "";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxE8eRENNl8N2qxugfNpw0PFQmQNaH2pl1BxFeqLizwVLw2x0v53h9H_zg7NgFxA5ps/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyfw76sFXWY77VK-WGYEcQUrzsFCXMC1KChs_Pak5i27vC_79k0f4izlEMLXgtky80/exec";
 
 // 🔊 SOUND
 const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
@@ -59,13 +70,19 @@ const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_w
 function startScan() {
   html5QrCode = new Html5Qrcode("reader");
 
-  Html5Qrcode.getCameras().then(devices => {
-    html5QrCode.start(
-      devices[0].id,
-      { fps: 10, qrbox: 250 },
-      onScanSuccess
-    );
-  }).catch(err => alert("Camera error - use HTTPS"));
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: function(w, h) {
+        return {
+          width: w * 0.9,
+          height: h * 0.4
+        };
+      }
+    },
+    onScanSuccess
+  ).catch(err => alert("Camera error: Use HTTPS"));
 }
 
 function onScanSuccess(text) {
@@ -79,13 +96,10 @@ function onScanSuccess(text) {
     tracking = text;
     step = 1;
 
-    document.getElementById("status").innerText = "✅ DONE";
-
     beep.play();
 
     sendData();
 
-    // reset
     orderId = "";
     tracking = "";
   }
@@ -103,7 +117,18 @@ function sendData() {
     })
   })
   .then(res => res.json())
-  .then(() => {
+  .then(data => {
+
+    if (data.status === "duplicate") {
+      document.getElementById("status").innerHTML =
+        "❌ Already Scanned<br>" +
+        "First Entry: " + data.date + " " + data.time +
+        " (" + data.mode + ")";
+    } else {
+      document.getElementById("status").innerHTML =
+        "✅ Saved<br>" + data.date + " " + data.time;
+    }
+
     loadDashboard();
   });
 }
@@ -118,7 +143,6 @@ function loadDashboard() {
   });
 }
 
-// auto load
 loadDashboard();
 </script>
 
