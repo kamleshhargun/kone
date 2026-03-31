@@ -7,71 +7,79 @@
 <style>
 body {
   font-family: 'Segoe UI', Arial;
-  background: #f4f6f9;
-  text-align: center;
+  background:#f4f6f9;
+  text-align:center;
 }
 
 .container {
-  max-width: 420px;
-  margin: auto;
-  padding: 15px;
+  max-width:420px;
+  margin:auto;
+  padding:15px;
 }
 
 .card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom: 15px;
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
+h2 { margin-bottom:10px; }
+
 #reader video {
-  width: 100% !important;
-  height: 220px !important;
-  object-fit: cover;
-  border-radius: 10px;
+  width:100%!important;
+  height:220px!important;
+  object-fit:cover;
+  border-radius:10px;
 }
 
 button {
-  padding: 12px;
-  margin: 6px;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
 }
 
-.start { background: #28a745; color: #fff; }
-.next { background: #007bff; color: #fff; }
-.stop { background: #dc3545; color: #fff; }
-
-.mode-toggle {
-  display: flex;
-  gap: 10px;
-}
+.start{background:#28a745;color:#fff;}
+.next{background:#007bff;color:#fff;}
+.stop{background:#dc3545;color:#fff;}
+.manual{background:#444;color:#fff;}
 
 .mode-btn {
-  flex: 1;
-  padding: 15px;
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 10px;
-  background: #ddd;
+  padding:12px;
+  font-size:16px;
+  margin:5px;
+  border-radius:8px;
+}
+.mode-btn.active { background:#007bff;color:#fff; }
+
+input {
+  padding:10px;
+  width:90%;
+  margin:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
 }
 
-.mode-btn.active {
-  background: #007bff;
-  color: #fff;
+#manualBox { display:none; }
+
+.stat {
+  display:flex;
+  justify-content:space-between;
+  margin-top:8px;
 }
 
-#status {
-  font-weight: bold;
-  margin-top: 10px;
+.stat div {
+  flex:1;
+  font-size:14px;
 }
 
-.dashboard span {
-  font-size: 18px;
-  font-weight: bold;
+.stat span {
+  font-size:18px;
+  font-weight:bold;
+  display:block;
 }
 </style>
 </head>
@@ -83,133 +91,180 @@ button {
 <h2>📦 Scanner System</h2>
 
 <!-- DASHBOARD -->
-<div class="card dashboard">
-📊 Today<br>
-Pickup: <span id="pickupCount">0</span> |
-Return: <span id="returnCount">0</span>
+<div class="card">
+<h3>📊 Dashboard</h3>
+
+<div class="stat">
+  <div>Today Pickup <span id="pickup_today">0</span></div>
+  <div>Today Return <span id="return_today">0</span></div>
+</div>
+
+<div class="stat">
+  <div>Yesterday Pickup <span id="pickup_yesterday">0</span></div>
+  <div>Yesterday Return <span id="return_yesterday">0</span></div>
+</div>
+
+<div class="stat">
+  <div>Total Pickup <span id="pickup_total">0</span></div>
+  <div>Total Return <span id="return_total">0</span></div>
+</div>
+
 </div>
 
 <!-- MODE -->
 <div class="card">
-  <div class="mode-toggle">
-    <button id="pickupBtn" class="mode-btn active" onclick="setMode('Pickup')">📦 Pickup</button>
-    <button id="returnBtn" class="mode-btn" onclick="setMode('Return')">↩ Return</button>
-  </div>
+<button id="pickupBtn" class="mode-btn active" onclick="setMode('Pickup')">📦 Pickup</button>
+<button id="returnBtn" class="mode-btn" onclick="setMode('Return')">↩ Return</button>
 </div>
 
 <!-- CAMERA -->
 <div class="card">
-  <div id="reader"></div>
+<div id="reader"></div>
 
-  <button id="startBtn" class="start" onclick="startOrder()">Start</button>
-  <button id="nextBtn" class="next" onclick="startTracking()" style="display:none;">Next</button>
-  <button class="stop" onclick="stopScan()">Stop</button>
+<button class="start" onclick="startOrder()">Start</button>
+<button class="next" onclick="startTracking()" id="nextBtn" style="display:none;">Next</button>
+<button class="stop" onclick="stopScan()">Stop</button>
+<button class="manual" onclick="openManual()">Manual</button>
 
-  <div id="status">Ready</div>
+<div id="status">Ready</div>
+</div>
+
+<!-- MANUAL -->
+<div class="card" id="manualBox">
+<h3>Manual Entry</h3>
+
+<input id="manualOrder" placeholder="Scan / Enter Order ID">
+<input id="manualTracking" placeholder="Scan / Enter Tracking ID">
+
+<button onclick="submitManual()">Submit</button>
 </div>
 
 </div>
 
 <script>
 let html5QrCode;
-let orderId = "";
-let mode = "Pickup";
+let orderId="";
+let mode="Pickup";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxnW9V63PUjacF2w-9tVAsaOb6vMrf6XuMowfttVTp_iVpgHgndNVgWueCKvcwV12FB/exec";
+const API_URL="https://script.google.com/macros/s/AKfycbxnW9V63PUjacF2w-9tVAsaOb6vMrf6XuMowfttVTp_iVpgHgndNVgWueCKvcwV12FB/exec";
 
-const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+const beep=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
 // MODE
-function setMode(selected) {
-  mode = selected;
-
+function setMode(m){
+  mode=m;
   pickupBtn.classList.remove("active");
   returnBtn.classList.remove("active");
-
-  if (selected === "Pickup") pickupBtn.classList.add("active");
+  if(m==="Pickup") pickupBtn.classList.add("active");
   else returnBtn.classList.add("active");
 }
 
-// START ORDER SCAN
-function startOrder() {
-  html5QrCode = new Html5Qrcode("reader");
+// CAMERA FLOW
+function startOrder(){
+  html5QrCode=new Html5Qrcode("reader");
 
   html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 25, qrbox: { width: 250, height: 120 } },
-    (text) => {
-      orderId = text;
+    {facingMode:"environment"},
+    {fps:25,qrbox:{width:250,height:120}},
+    text=>{
+      orderId=text;
       stopScan();
-
-      document.getElementById("status").innerText = "Order Scanned ✅";
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("nextBtn").style.display = "inline-block";
+      status.innerText="Order Scanned ✅";
+      nextBtn.style.display="inline-block";
     }
   );
-
-  document.getElementById("status").innerText = "Scan Order ID";
 }
 
-// START TRACKING
-function startTracking() {
-  html5QrCode = new Html5Qrcode("reader");
+function startTracking(){
+  html5QrCode=new Html5Qrcode("reader");
 
   html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 25, qrbox: { width: 250, height: 120 } },
-    (text) => {
-      let tracking = text;
+    {facingMode:"environment"},
+    {fps:25,qrbox:{width:250,height:120}},
+    text=>{
+      let tracking=text;
       stopScan();
 
       beep.play();
-      if (navigator.vibrate) navigator.vibrate(200);
+      if(navigator.vibrate) navigator.vibrate(200);
 
-      sendData(orderId, tracking);
+      sendData(orderId,tracking);
 
-      document.getElementById("status").innerText = "✅ Done";
-
-      // RESET
-      document.getElementById("startBtn").style.display = "inline-block";
-      document.getElementById("nextBtn").style.display = "none";
-      orderId = "";
+      status.innerText="Done ✅";
+      nextBtn.style.display="none";
+      orderId="";
     }
   );
-
-  document.getElementById("status").innerText = "Scan Tracking ID";
 }
 
-// STOP
-function stopScan() {
-  if (html5QrCode) {
-    html5QrCode.stop().catch(()=>{});
+function stopScan(){
+  if(html5QrCode) html5QrCode.stop().catch(()=>{});
+}
+
+// MANUAL
+function openManual(){
+  manualBox.style.display="block";
+  manualOrder.focus();
+}
+
+function submitManual(){
+
+  let order=manualOrder.value.trim();
+  let tracking=manualTracking.value.trim();
+
+  if(!order||!tracking){
+    alert("Fill both fields");
+    return;
   }
+
+  beep.play(); // 🔊 SOUND
+  if(navigator.vibrate) navigator.vibrate(200);
+
+  sendData(order,tracking);
+
+  manualOrder.value="";
+  manualTracking.value="";
+  manualBox.style.display="none";
+
+  status.innerText="Manual Done ✅";
 }
 
-// SEND DATA
-function sendData(orderId, tracking) {
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      mode: mode,
-      order_id: orderId,
-      tracking: tracking
-    })
-  })
-  .then(res => res.json())
-  .then(() => loadDashboard());
+// API
+function sendData(order,tracking){
+
+fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+mode:mode.toLowerCase(),
+order_id:order,
+tracking:tracking
+})
+})
+.then(res=>res.json())
+.then(()=>loadDashboard());
 }
 
-// DASHBOARD
-function loadDashboard() {
-  fetch(API_URL + "?mode=dashboard")
-  .then(res => res.json())
-  .then(data => {
-    pickupCount.innerText = data.pickup || 0;
-    returnCount.innerText = data.return || 0;
-  });
+// DASHBOARD FULL
+function loadDashboard(){
+
+fetch(API_URL+"?type=stats")
+.then(res=>res.json())
+.then(d=>{
+
+pickup_today.innerText=d.todayPickup||0;
+pickup_yesterday.innerText=d.yesterdayPickup||0;
+pickup_total.innerText=d.totalPickup||0;
+
+return_today.innerText=d.todayReturn||0;
+return_yesterday.innerText=d.yesterdayReturn||0;
+return_total.innerText=d.totalReturn||0;
+
+});
 }
 
+setInterval(loadDashboard,3000);
 loadDashboard();
+
 </script>
 
 </body>
