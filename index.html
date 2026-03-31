@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body { font-family: Arial; text-align:center; }
+
+#reader { width:300px; margin:auto; }
+
+button { padding:10px 20px; margin:10px; }
+
+#status { font-weight:bold; margin:10px; }
+
+#dashboard {
+  background:#f5f5f5;
+  padding:10px;
+  margin-bottom:15px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📦 Scanner System</h2>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <b>📊 Dashboard</b><br>
+  Pickup: <span id="pickupCount">0</span> |
+  Return: <span id="returnCount">0</span>
+</div>
+
+<select id="mode">
+  <option value="Pickup">Pickup</option>
+  <option value="Return">Return</option>
+</select>
+
+<br>
+
+<button onclick="startScan()">Start Scan</button>
+
+<div id="status">Step: Scan Order ID</div>
+
+<div id="reader"></div>
+
+<script>
+let html5QrCode;
+let step = 1;
+let orderId = "";
+let tracking = "";
+
+const API_URL = "https://script.google.com/macros/s/AKfycbxE8eRENNl8N2qxugfNpw0PFQmQNaH2pl1BxFeqLizwVLw2x0v53h9H_zg7NgFxA5ps/exec";
+
+// 🔊 SOUND
+const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+
+function startScan() {
+  html5QrCode = new Html5Qrcode("reader");
+
+  Html5Qrcode.getCameras().then(devices => {
+    html5QrCode.start(
+      devices[0].id,
+      { fps: 10, qrbox: 250 },
+      onScanSuccess
+    );
+  }).catch(err => alert("Camera error - use HTTPS"));
+}
+
+function onScanSuccess(text) {
+  html5QrCode.stop();
+
+  if (step === 1) {
+    orderId = text;
+    step = 2;
+    document.getElementById("status").innerText = "Step: Scan Tracking ID";
+  } else {
+    tracking = text;
+    step = 1;
+
+    document.getElementById("status").innerText = "✅ DONE";
+
+    beep.play();
+
+    sendData();
+
+    // reset
+    orderId = "";
+    tracking = "";
+  }
+}
+
+function sendData() {
+  let mode = document.getElementById("mode").value;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      mode: mode,
+      order_id: orderId,
+      tracking: tracking
+    })
+  })
+  .then(res => res.json())
+  .then(() => {
+    loadDashboard();
+  });
+}
+
+// 📊 DASHBOARD
+function loadDashboard() {
+  fetch(API_URL + "?mode=dashboard")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("pickupCount").innerText = data.pickup;
+    document.getElementById("returnCount").innerText = data.return;
+  });
+}
+
+// auto load
+loadDashboard();
+</script>
+
+</body>
+</html>
