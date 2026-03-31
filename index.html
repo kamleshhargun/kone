@@ -25,9 +25,7 @@ body {
   margin-bottom: 15px;
 }
 
-h2 {
-  margin-bottom: 10px;
-}
+h2 { margin-bottom: 10px; }
 
 #reader video {
   width: 100% !important;
@@ -37,7 +35,7 @@ h2 {
 }
 
 button {
-  padding: 10px 15px;
+  padding: 10px;
   margin: 5px;
   border: none;
   border-radius: 8px;
@@ -45,6 +43,27 @@ button {
   cursor: pointer;
 }
 
+/* MODE BUTTONS */
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 10px;
+  background: #ddd;
+}
+
+.mode-btn.active {
+  background: #007bff;
+  color: #fff;
+}
+
+/* CONTROL BUTTONS */
 .start { background: #28a745; color: #fff; }
 .stop { background: #dc3545; color: #fff; }
 .flash { background: #ffc107; }
@@ -74,12 +93,12 @@ button {
     Return: <span id="returnCount">0</span>
   </div>
 
-  <!-- MODE -->
+  <!-- MODE BUTTONS -->
   <div class="card">
-    <select id="mode">
-      <option value="Pickup">Pickup</option>
-      <option value="Return">Return</option>
-    </select>
+    <div class="mode-toggle">
+      <button id="pickupBtn" class="mode-btn active" onclick="setMode('Pickup')">📦 Pickup</button>
+      <button id="returnBtn" class="mode-btn" onclick="setMode('Return')">↩ Return</button>
+    </div>
   </div>
 
   <!-- CAMERA -->
@@ -99,13 +118,29 @@ button {
 let html5QrCode;
 let step = 1;
 let orderId = "";
+let mode = "Pickup";
 let flashOn = false;
 
 const API_URL = "https://script.google.com/macros/s/AKfycbyfw76sFXWY77VK-WGYEcQUrzsFCXMC1KChs_Pak5i27vC_79k0f4izlEMLXgtky80/exec";
 
-// 🔊 SOUND + 📳 VIBRATION
+// 🔊 SOUND
 const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
+// MODE SWITCH
+function setMode(selected) {
+  mode = selected;
+
+  document.getElementById("pickupBtn").classList.remove("active");
+  document.getElementById("returnBtn").classList.remove("active");
+
+  if (selected === "Pickup") {
+    document.getElementById("pickupBtn").classList.add("active");
+  } else {
+    document.getElementById("returnBtn").classList.add("active");
+  }
+}
+
+// START SCAN
 function startScan() {
   html5QrCode = new Html5Qrcode("reader");
 
@@ -121,11 +156,13 @@ function startScan() {
   document.getElementById("status").innerText = "Scan Order ID";
 }
 
+// STOP
 function stopScan() {
   if (html5QrCode) html5QrCode.stop();
   document.getElementById("status").innerText = "Stopped";
 }
 
+// FLASH
 function toggleFlash() {
   if (!html5QrCode) return;
 
@@ -136,6 +173,7 @@ function toggleFlash() {
   flashOn = !flashOn;
 }
 
+// SCAN SUCCESS
 function onScanSuccess(text) {
 
   if (step === 1) {
@@ -151,7 +189,6 @@ function onScanSuccess(text) {
 
     sendData(orderId, tracking);
 
-    // RESET AUTO
     step = 1;
     orderId = "";
 
@@ -159,8 +196,8 @@ function onScanSuccess(text) {
   }
 }
 
+// SEND DATA
 function sendData(orderId, tracking) {
-  let mode = document.getElementById("mode").value;
 
   fetch(API_URL, {
     method: "POST",
@@ -174,7 +211,7 @@ function sendData(orderId, tracking) {
   .then(() => loadDashboard());
 }
 
-// DASHBOARD FIX
+// DASHBOARD
 function loadDashboard() {
   fetch(API_URL + "?mode=dashboard")
   .then(res => res.json())
