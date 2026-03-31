@@ -51,6 +51,7 @@ button { padding: 10px 20px; margin: 10px; }
 <br>
 
 <button onclick="startScan()">Start Scan</button>
+<button onclick="stopScan()">Stop</button>
 
 <div id="status">Step: Scan Order ID</div>
 
@@ -67,30 +68,32 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyfw76sFXWY77VK-WGYEcQU
 // 🔊 SOUND
 const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
+// ▶ START
 function startScan() {
   html5QrCode = new Html5Qrcode("reader");
+
+  document.getElementById("status").innerText = "📷 Camera Started...";
 
   html5QrCode.start(
     { facingMode: "environment" },
     {
-      fps: 20, // 🔥 faster scanning
-
-      qrbox: function(w, h) {
-        return {
-          width: w * 0.8,
-          height: h * 0.3
-        };
-      },
-
-      aspectRatio: 1.777, // 🔥 better camera ratio (16:9)
-      disableFlip: false
+      fps: 20,
+      qrbox: { width: 250, height: 120 }
     },
     onScanSuccess
-  ).catch(err => {
-    alert("Camera error");
-  });
+  ).catch(() => alert("Camera error (use HTTPS)"));
 }
 
+// ⛔ STOP (NEW)
+function stopScan() {
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => {
+      document.getElementById("status").innerText = "⛔ Camera Stopped";
+    });
+  }
+}
+
+// 🎯 SCAN SUCCESS
 function onScanSuccess(text) {
   html5QrCode.stop();
 
@@ -104,6 +107,8 @@ function onScanSuccess(text) {
 
     beep.play();
 
+    document.getElementById("status").innerText = "⏳ Checking...";
+
     sendData();
 
     orderId = "";
@@ -111,6 +116,7 @@ function onScanSuccess(text) {
   }
 }
 
+// 📡 API CALL
 function sendData() {
   let mode = document.getElementById("mode").value;
 
@@ -127,28 +133,30 @@ function sendData() {
 
     if (data.status === "duplicate") {
       document.getElementById("status").innerHTML =
-        "❌ Already Scanned<br>" +
-        "First Entry: " + data.date + " " + data.time +
-        " (" + data.mode + ")";
+        "❌ Duplicate<br>" +
+        "Order: " + data.order_id + "<br>" +
+        data.date + " " + data.time + " (" + data.mode + ")";
     } else {
       document.getElementById("status").innerHTML =
-        "✅ Saved<br>" + data.date + " " + data.time;
+        "✅ Saved<br>" +
+        data.date + " " + data.time;
     }
 
     loadDashboard();
   });
 }
 
-// 📊 DASHBOARD
+// 📊 DASHBOARD FIX
 function loadDashboard() {
   fetch(API_URL + "?mode=dashboard")
   .then(res => res.json())
   .then(data => {
-    document.getElementById("pickupCount").innerText = data.pickup;
-    document.getElementById("returnCount").innerText = data.return;
+    document.getElementById("pickupCount").innerText = data.pickup || 0;
+    document.getElementById("returnCount").innerText = data.return || 0;
   });
 }
 
+// AUTO LOAD
 loadDashboard();
 </script>
 
