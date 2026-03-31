@@ -143,126 +143,183 @@ input {
 
 <script>
 let html5QrCode;
-let orderId="";
-let mode="Pickup";
+let orderId = "";
+let mode = "Pickup";
 
-const API_URL="https://script.google.com/macros/s/AKfycbxnW9V63PUjacF2w-9tVAsaOb6vMrf6XuMowfttVTp_iVpgHgndNVgWueCKvcwV12FB/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxnW9V63PUjacF2w-9tVAsaOb6vMrf6XuMowfttVTp_iVpgHgndNVgWueCKvcwV12FB/exec";
 
-const beep=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
-// MODE
+// ================= MODE =================
 function setMode(m){
-  mode=m;
+  mode = m;
+
   pickupBtn.classList.remove("active");
   returnBtn.classList.remove("active");
-  if(m==="Pickup") pickupBtn.classList.add("active");
+
+  if(m === "Pickup") pickupBtn.classList.add("active");
   else returnBtn.classList.add("active");
 }
 
-// CAMERA FLOW
+// ================= CAMERA FLOW =================
+
+// STEP 1 → ORDER
 function startOrder(){
-  html5QrCode=new Html5Qrcode("reader");
+  html5QrCode = new Html5Qrcode("reader");
 
   html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:25,qrbox:{width:250,height:120}},
-    text=>{
-      orderId=text;
+    { facingMode: "environment" },
+    { fps: 25, qrbox: { width: 250, height: 120 } },
+    text => {
+      orderId = text;
       stopScan();
-      status.innerText="Order Scanned ✅";
-      nextBtn.style.display="inline-block";
+
+      status.innerText = "Order Scanned ✅";
+      nextBtn.style.display = "inline-block";
     }
   );
 }
 
+// STEP 2 → TRACKING
 function startTracking(){
-  html5QrCode=new Html5Qrcode("reader");
+  html5QrCode = new Html5Qrcode("reader");
 
   html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:25,qrbox:{width:250,height:120}},
-    text=>{
-      let tracking=text;
+    { facingMode: "environment" },
+    { fps: 25, qrbox: { width: 250, height: 120 } },
+    text => {
+
+      let tracking = text;
       stopScan();
 
       beep.play();
       if(navigator.vibrate) navigator.vibrate(200);
 
-      sendData(orderId,tracking);
+      sendData(orderId, tracking);
 
-      status.innerText="Done ✅";
-      nextBtn.style.display="none";
-      orderId="";
+      status.innerText = "Done ✅";
+      nextBtn.style.display = "none";
+      orderId = "";
     }
   );
 }
 
+// STOP CAMERA
 function stopScan(){
-  if(html5QrCode) html5QrCode.stop().catch(()=>{});
+  if(html5QrCode){
+    html5QrCode.stop().catch(()=>{});
+  }
 }
 
-// MANUAL
+// ================= MANUAL FLOW =================
+
+// OPEN MANUAL
 function openManual(){
-  manualBox.style.display="block";
+  manualBox.style.display = "block";
   manualOrder.focus();
 }
 
+// ORDER FIELD (scanner + enter)
+manualOrder.addEventListener("change", () => {
+  manualTracking.focus();
+});
+
+manualOrder.addEventListener("keypress", (e) => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    manualTracking.focus();
+  }
+});
+
+// TRACKING FIELD (scanner + enter)
+manualTracking.addEventListener("change", () => {
+  submitManual();
+});
+
+manualTracking.addEventListener("keypress", (e) => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    submitManual();
+  }
+});
+
+// SUBMIT MANUAL
 function submitManual(){
 
-  let order=manualOrder.value.trim();
-  let tracking=manualTracking.value.trim();
+  let order = manualOrder.value.trim();
+  let tracking = manualTracking.value.trim();
 
-  if(!order||!tracking){
+  if(!order || !tracking){
     alert("Fill both fields");
     return;
   }
 
-  beep.play(); // 🔊 SOUND
+  beep.play();
   if(navigator.vibrate) navigator.vibrate(200);
 
-  sendData(order,tracking);
+  sendData(order, tracking);
 
-  manualOrder.value="";
-  manualTracking.value="";
-  manualBox.style.display="none";
+  // RESET
+  manualOrder.value = "";
+  manualTracking.value = "";
+  manualBox.style.display = "none";
 
-  status.innerText="Manual Done ✅";
+  status.innerText = "Manual Done ✅";
 }
 
-// API
-function sendData(order,tracking){
+// ================= API =================
 
-fetch(API_URL,{
-method:"POST",
-body:JSON.stringify({
-mode:mode.toLowerCase(),
-order_id:order,
-tracking:tracking
-})
-})
-.then(res=>res.json())
-.then(()=>loadDashboard());
+function sendData(order, tracking){
+
+  fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify({
+      mode: mode.toLowerCase(),
+      order_id: order,
+      tracking: tracking
+    })
+  })
+  .then(res => res.json())
+  .then((res) => {
+
+    if(res.status === "success"){
+      loadDashboard();
+    } else {
+      status.innerText = "Error ❌";
+    }
+
+  })
+  .catch(()=>{
+    status.innerText = "API Error ❌";
+  });
 }
 
-// DASHBOARD FULL
+// ================= DASHBOARD =================
+
 function loadDashboard(){
 
-fetch(API_URL+"?type=stats")
-.then(res=>res.json())
-.then(d=>{
+  fetch(API_URL + "?type=stats")
+  .then(res => res.json())
+  .then(d => {
 
-pickup_today.innerText=d.todayPickup||0;
-pickup_yesterday.innerText=d.yesterdayPickup||0;
-pickup_total.innerText=d.totalPickup||0;
+    pickup_today.innerText = d.todayPickup || 0;
+    pickup_yesterday.innerText = d.yesterdayPickup || 0;
+    pickup_total.innerText = d.totalPickup || 0;
 
-return_today.innerText=d.todayReturn||0;
-return_yesterday.innerText=d.yesterdayReturn||0;
-return_total.innerText=d.totalReturn||0;
+    return_today.innerText = d.todayReturn || 0;
+    return_yesterday.innerText = d.yesterdayReturn || 0;
+    return_total.innerText = d.totalReturn || 0;
 
-});
+  })
+  .catch(()=>{
+    console.log("Dashboard Error");
+  });
 }
 
-setInterval(loadDashboard,3000);
+// AUTO REFRESH
+setInterval(loadDashboard, 3000);
+
+// INITIAL LOAD
 loadDashboard();
 
 </script>
