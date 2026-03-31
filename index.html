@@ -25,8 +25,6 @@ body {
   margin-bottom: 15px;
 }
 
-h2 { margin-bottom: 10px; }
-
 #reader video {
   width: 100% !important;
   height: 220px !important;
@@ -35,15 +33,18 @@ h2 { margin-bottom: 10px; }
 }
 
 button {
-  padding: 10px;
-  margin: 5px;
+  padding: 12px;
+  margin: 6px;
   border: none;
   border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
 }
 
-/* MODE BUTTONS */
+.start { background: #28a745; color: #fff; }
+.next { background: #007bff; color: #fff; }
+.stop { background: #dc3545; color: #fff; }
+
 .mode-toggle {
   display: flex;
   gap: 10px;
@@ -63,11 +64,6 @@ button {
   color: #fff;
 }
 
-/* CONTROL BUTTONS */
-.start { background: #28a745; color: #fff; }
-.stop { background: #dc3545; color: #fff; }
-.flash { background: #ffc107; }
-
 #status {
   font-weight: bold;
   margin-top: 10px;
@@ -84,121 +80,113 @@ button {
 
 <div class="container">
 
-  <h2>📦 Scanner System</h2>
+<h2>📦 Scanner System</h2>
 
-  <!-- DASHBOARD -->
-  <div class="card dashboard">
-    📊 Today<br>
-    Pickup: <span id="pickupCount">0</span> |
-    Return: <span id="returnCount">0</span>
+<!-- DASHBOARD -->
+<div class="card dashboard">
+📊 Today<br>
+Pickup: <span id="pickupCount">0</span> |
+Return: <span id="returnCount">0</span>
+</div>
+
+<!-- MODE -->
+<div class="card">
+  <div class="mode-toggle">
+    <button id="pickupBtn" class="mode-btn active" onclick="setMode('Pickup')">📦 Pickup</button>
+    <button id="returnBtn" class="mode-btn" onclick="setMode('Return')">↩ Return</button>
   </div>
+</div>
 
-  <!-- MODE BUTTONS -->
-  <div class="card">
-    <div class="mode-toggle">
-      <button id="pickupBtn" class="mode-btn active" onclick="setMode('Pickup')">📦 Pickup</button>
-      <button id="returnBtn" class="mode-btn" onclick="setMode('Return')">↩ Return</button>
-    </div>
-  </div>
+<!-- CAMERA -->
+<div class="card">
+  <div id="reader"></div>
 
-  <!-- CAMERA -->
-  <div class="card">
-    <div id="reader"></div>
+  <button id="startBtn" class="start" onclick="startOrder()">Start</button>
+  <button id="nextBtn" class="next" onclick="startTracking()" style="display:none;">Next</button>
+  <button class="stop" onclick="stopScan()">Stop</button>
 
-    <button class="start" onclick="startScan()">Start</button>
-    <button class="stop" onclick="stopScan()">Stop</button>
-    <button class="flash" onclick="toggleFlash()">🔦 Flash</button>
-
-    <div id="status">Ready</div>
-  </div>
+  <div id="status">Ready</div>
+</div>
 
 </div>
 
 <script>
 let html5QrCode;
-let step = 1;
 let orderId = "";
 let mode = "Pickup";
-let flashOn = false;
 
 const API_URL = "https://script.google.com/macros/s/AKfycbyfw76sFXWY77VK-WGYEcQUrzsFCXMC1KChs_Pak5i27vC_79k0f4izlEMLXgtky80/exec";
 
-// 🔊 SOUND
 const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
-// MODE SWITCH
+// MODE
 function setMode(selected) {
   mode = selected;
 
-  document.getElementById("pickupBtn").classList.remove("active");
-  document.getElementById("returnBtn").classList.remove("active");
+  pickupBtn.classList.remove("active");
+  returnBtn.classList.remove("active");
 
-  if (selected === "Pickup") {
-    document.getElementById("pickupBtn").classList.add("active");
-  } else {
-    document.getElementById("returnBtn").classList.add("active");
-  }
+  if (selected === "Pickup") pickupBtn.classList.add("active");
+  else returnBtn.classList.add("active");
 }
 
-// START SCAN
-function startScan() {
+// START ORDER SCAN
+function startOrder() {
   html5QrCode = new Html5Qrcode("reader");
 
   html5QrCode.start(
     { facingMode: "environment" },
-    {
-      fps: 25,
-      qrbox: { width: 250, height: 120 }
-    },
-    onScanSuccess
+    { fps: 25, qrbox: { width: 250, height: 120 } },
+    (text) => {
+      orderId = text;
+      stopScan();
+
+      document.getElementById("status").innerText = "Order Scanned ✅";
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("nextBtn").style.display = "inline-block";
+    }
   );
 
   document.getElementById("status").innerText = "Scan Order ID";
 }
 
+// START TRACKING
+function startTracking() {
+  html5QrCode = new Html5Qrcode("reader");
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 25, qrbox: { width: 250, height: 120 } },
+    (text) => {
+      let tracking = text;
+      stopScan();
+
+      beep.play();
+      if (navigator.vibrate) navigator.vibrate(200);
+
+      sendData(orderId, tracking);
+
+      document.getElementById("status").innerText = "✅ Done";
+
+      // RESET
+      document.getElementById("startBtn").style.display = "inline-block";
+      document.getElementById("nextBtn").style.display = "none";
+      orderId = "";
+    }
+  );
+
+  document.getElementById("status").innerText = "Scan Tracking ID";
+}
+
 // STOP
 function stopScan() {
-  if (html5QrCode) html5QrCode.stop();
-  document.getElementById("status").innerText = "Stopped";
-}
-
-// FLASH
-function toggleFlash() {
-  if (!html5QrCode) return;
-
-  html5QrCode.applyVideoConstraints({
-    advanced: [{ torch: !flashOn }]
-  });
-
-  flashOn = !flashOn;
-}
-
-// SCAN SUCCESS
-function onScanSuccess(text) {
-
-  if (step === 1) {
-    orderId = text;
-    step = 2;
-    document.getElementById("status").innerText = "Scan Tracking ID";
-  } else {
-
-    let tracking = text;
-
-    beep.play();
-    if (navigator.vibrate) navigator.vibrate(200);
-
-    sendData(orderId, tracking);
-
-    step = 1;
-    orderId = "";
-
-    document.getElementById("status").innerText = "Scan Next Order ID";
+  if (html5QrCode) {
+    html5QrCode.stop().catch(()=>{});
   }
 }
 
 // SEND DATA
 function sendData(orderId, tracking) {
-
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({
@@ -216,8 +204,8 @@ function loadDashboard() {
   fetch(API_URL + "?mode=dashboard")
   .then(res => res.json())
   .then(data => {
-    document.getElementById("pickupCount").innerText = data.pickup || 0;
-    document.getElementById("returnCount").innerText = data.return || 0;
+    pickupCount.innerText = data.pickup || 0;
+    returnCount.innerText = data.return || 0;
   });
 }
 
