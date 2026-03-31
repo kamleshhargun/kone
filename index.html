@@ -5,119 +5,161 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body { font-family: Arial; text-align:center; }
+body {
+  font-family: 'Segoe UI', Arial;
+  background: #f4f6f9;
+  text-align: center;
+}
 
-#reader {
-  width: 100%;
-  max-width: 400px;
+.container {
+  max-width: 420px;
   margin: auto;
+  padding: 15px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+}
+
+h2 {
+  margin-bottom: 10px;
 }
 
 #reader video {
   width: 100% !important;
-  height: 250px !important;
+  height: 220px !important;
   object-fit: cover;
   border-radius: 10px;
 }
 
-button { padding: 10px 20px; margin: 10px; }
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-#status { font-weight: bold; margin: 10px; }
+.start { background: #28a745; color: #fff; }
+.stop { background: #dc3545; color: #fff; }
+.flash { background: #ffc107; }
 
-#dashboard {
-  background:#f5f5f5;
-  padding:10px;
-  margin-bottom:15px;
+#status {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.dashboard span {
+  font-size: 18px;
+  font-weight: bold;
 }
 </style>
 </head>
 
 <body>
 
-<h2>📦 Scanner System</h2>
+<div class="container">
 
-<!-- DASHBOARD -->
-<div id="dashboard">
-  <b>📊 Today Dashboard</b><br>
-  Pickup: <span id="pickupCount">0</span> |
-  Return: <span id="returnCount">0</span>
+  <h2>📦 Scanner System</h2>
+
+  <!-- DASHBOARD -->
+  <div class="card dashboard">
+    📊 Today<br>
+    Pickup: <span id="pickupCount">0</span> |
+    Return: <span id="returnCount">0</span>
+  </div>
+
+  <!-- MODE -->
+  <div class="card">
+    <select id="mode">
+      <option value="Pickup">Pickup</option>
+      <option value="Return">Return</option>
+    </select>
+  </div>
+
+  <!-- CAMERA -->
+  <div class="card">
+    <div id="reader"></div>
+
+    <button class="start" onclick="startScan()">Start</button>
+    <button class="stop" onclick="stopScan()">Stop</button>
+    <button class="flash" onclick="toggleFlash()">🔦 Flash</button>
+
+    <div id="status">Ready</div>
+  </div>
+
 </div>
-
-<select id="mode">
-  <option value="Pickup">Pickup</option>
-  <option value="Return">Return</option>
-</select>
-
-<br>
-
-<button onclick="startScan()">Start Scan</button>
-<button onclick="stopScan()">Stop</button>
-
-<div id="status">Step: Scan Order ID</div>
-
-<div id="reader"></div>
 
 <script>
 let html5QrCode;
 let step = 1;
 let orderId = "";
-let tracking = "";
+let flashOn = false;
 
 const API_URL = "https://script.google.com/macros/s/AKfycbyfw76sFXWY77VK-WGYEcQUrzsFCXMC1KChs_Pak5i27vC_79k0f4izlEMLXgtky80/exec";
 
-// 🔊 SOUND
+// 🔊 SOUND + 📳 VIBRATION
 const beep = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
-// ▶ START
 function startScan() {
   html5QrCode = new Html5Qrcode("reader");
-
-  document.getElementById("status").innerText = "📷 Camera Started...";
 
   html5QrCode.start(
     { facingMode: "environment" },
     {
-      fps: 20,
+      fps: 25,
       qrbox: { width: 250, height: 120 }
     },
     onScanSuccess
-  ).catch(() => alert("Camera error (use HTTPS)"));
+  );
+
+  document.getElementById("status").innerText = "Scan Order ID";
 }
 
-// ⛔ STOP (NEW)
 function stopScan() {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      document.getElementById("status").innerText = "⛔ Camera Stopped";
-    });
-  }
+  if (html5QrCode) html5QrCode.stop();
+  document.getElementById("status").innerText = "Stopped";
 }
 
-// 🎯 SCAN SUCCESS
+function toggleFlash() {
+  if (!html5QrCode) return;
+
+  html5QrCode.applyVideoConstraints({
+    advanced: [{ torch: !flashOn }]
+  });
+
+  flashOn = !flashOn;
+}
+
 function onScanSuccess(text) {
-  html5QrCode.stop();
 
   if (step === 1) {
     orderId = text;
     step = 2;
-    document.getElementById("status").innerText = "Step: Scan Tracking ID";
+    document.getElementById("status").innerText = "Scan Tracking ID";
   } else {
-    tracking = text;
-    step = 1;
+
+    let tracking = text;
 
     beep.play();
+    if (navigator.vibrate) navigator.vibrate(200);
 
-    document.getElementById("status").innerText = "⏳ Checking...";
+    sendData(orderId, tracking);
 
-    sendData();
-
+    // RESET AUTO
+    step = 1;
     orderId = "";
-    tracking = "";
+
+    document.getElementById("status").innerText = "Scan Next Order ID";
   }
 }
 
-// 📡 API CALL
-function sendData() {
+function sendData(orderId, tracking) {
   let mode = document.getElementById("mode").value;
 
   fetch(API_URL, {
@@ -129,24 +171,10 @@ function sendData() {
     })
   })
   .then(res => res.json())
-  .then(data => {
-
-    if (data.status === "duplicate") {
-      document.getElementById("status").innerHTML =
-        "❌ Duplicate<br>" +
-        "Order: " + data.order_id + "<br>" +
-        data.date + " " + data.time + " (" + data.mode + ")";
-    } else {
-      document.getElementById("status").innerHTML =
-        "✅ Saved<br>" +
-        data.date + " " + data.time;
-    }
-
-    loadDashboard();
-  });
+  .then(() => loadDashboard());
 }
 
-// 📊 DASHBOARD FIX
+// DASHBOARD FIX
 function loadDashboard() {
   fetch(API_URL + "?mode=dashboard")
   .then(res => res.json())
@@ -156,7 +184,6 @@ function loadDashboard() {
   });
 }
 
-// AUTO LOAD
 loadDashboard();
 </script>
 
