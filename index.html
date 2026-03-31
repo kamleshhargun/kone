@@ -46,6 +46,7 @@ button {
 .next{background:#007bff;color:#fff;}
 .stop{background:#dc3545;color:#fff;}
 .manual{background:#444;color:#fff;}
+.search{background:#6f42c1;color:#fff;}
 
 .mode-btn {
   padding:12px;
@@ -84,6 +85,15 @@ input {
 #status {
   font-weight:bold;
   margin-top:10px;
+}
+
+.lookup-result {
+  text-align:left;
+  margin-top:10px;
+}
+.lookup-item {
+  padding:8px;
+  border-bottom:1px solid #eee;
 }
 </style>
 </head>
@@ -143,6 +153,16 @@ input {
 <button onclick="submitManual()">Submit</button>
 </div>
 
+<!-- 🔍 ORDER LOOKUP -->
+<div class="card">
+<h3>🔍 Order Lookup</h3>
+
+<input id="lookupInput" placeholder="Enter Order ID">
+<button class="search" onclick="searchOrder()">Search</button>
+
+<div id="lookupResult" class="lookup-result"></div>
+</div>
+
 </div>
 
 <script>
@@ -166,7 +186,6 @@ function setMode(m){
 // CAMERA FLOW
 function startOrder(){
   html5QrCode=new Html5Qrcode("reader");
-
   html5QrCode.start(
     {facingMode:"environment"},
     {fps:25,qrbox:{width:250,height:120}},
@@ -181,7 +200,6 @@ function startOrder(){
 
 function startTracking(){
   html5QrCode=new Html5Qrcode("reader");
-
   html5QrCode.start(
     {facingMode:"environment"},
     {fps:25,qrbox:{width:250,height:120}},
@@ -205,44 +223,25 @@ function stopScan(){
   if(html5QrCode) html5QrCode.stop().catch(()=>{});
 }
 
-// MANUAL FLOW
+// MANUAL
 function openManual(){
   manualBox.style.display="block";
   manualOrder.focus();
 }
 
-// ORDER → NEXT
-manualOrder.addEventListener("change",()=>manualTracking.focus());
 manualOrder.addEventListener("keypress",e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    manualTracking.focus();
-  }
+  if(e.key==="Enter"){manualTracking.focus();}
 });
-
-// TRACKING → DONE
-manualTracking.addEventListener("change",submitManual);
 manualTracking.addEventListener("keypress",e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    submitManual();
-  }
+  if(e.key==="Enter"){submitManual();}
 });
 
-// SUBMIT
 function submitManual(){
-
   let order=manualOrder.value.trim();
   let tracking=manualTracking.value.trim();
-
-  if(!order||!tracking){
-    alert("Fill both fields");
-    return;
-  }
+  if(!order||!tracking){alert("Fill both");return;}
 
   beep.play();
-  if(navigator.vibrate) navigator.vibrate(200);
-
   sendData(order,tracking);
 
   manualOrder.value="";
@@ -252,9 +251,8 @@ function submitManual(){
   status.innerText="Manual Done ✅";
 }
 
-// API
+// API SEND
 function sendData(order,tracking){
-
 fetch(API_URL,{
 method:"POST",
 body:JSON.stringify({
@@ -269,11 +267,9 @@ tracking:tracking
 
 // DASHBOARD
 function loadDashboard(){
-
 fetch(API_URL+"?type=stats")
 .then(res=>res.json())
 .then(d=>{
-
 pickup_today.innerText=d.todayPickup||0;
 pickup_yesterday.innerText=d.yesterdayPickup||0;
 pickup_total.innerText=d.totalPickup||0;
@@ -281,6 +277,36 @@ pickup_total.innerText=d.totalPickup||0;
 return_today.innerText=d.todayReturn||0;
 return_yesterday.innerText=d.yesterdayReturn||0;
 return_total.innerText=d.totalReturn||0;
+});
+}
+
+// 🔍 ORDER LOOKUP FUNCTION
+function searchOrder(){
+
+let order=document.getElementById("lookupInput").value.trim();
+if(!order){alert("Enter Order ID");return;}
+
+fetch(API_URL+"?type=lookup&order_id="+encodeURIComponent(order))
+.then(res=>res.json())
+.then(data=>{
+
+let box=document.getElementById("lookupResult");
+box.innerHTML="";
+
+if(!data.length){
+  box.innerHTML="No Data Found";
+  return;
+}
+
+data.forEach(item=>{
+  box.innerHTML+=`
+  <div class="lookup-item">
+    <b>${item.order_id}</b><br>
+    SKU: ${item.sku}<br>
+    Product: ${item.product}<br>
+    Qty: ${item.qty}
+  </div>`;
+});
 
 });
 }
