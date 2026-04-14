@@ -244,22 +244,36 @@ lookupResult.innerHTML="";
 
 // TRACK
 function trackOrder(){
-let order=trackOrderId.value.trim();
-let tracking=trackWaybill.value.trim();
 
-if(!order||!tracking){alert("Enter both");return;}
+let order = document.getElementById("trackOrderId").value.trim();
+let tracking = document.getElementById("trackWaybill").value.trim();
 
-trackResult.innerHTML="Loading...";
+if(!order || !tracking){
+  alert("Enter Order ID & Tracking");
+  return;
+}
 
-fetch(API_URL+"?type=track&order_id="+order+"&tracking="+tracking)
+trackResult.innerHTML = "Loading...";
+
+// 🔥 IMPORTANT FIX (encode both values)
+let url = API_URL + "?type=track"
+  + "&order_id=" + encodeURIComponent(order)
+  + "&tracking=" + encodeURIComponent(tracking);
+
+fetch(url)
 .then(res=>res.json())
 .then(d=>{
 
-if(d.error){trackResult.innerHTML=d.error;return;}
+console.log("API Response:", d); // 🔥 DEBUG
 
-trackingData=d;
+if(d.error){
+  trackResult.innerHTML = "❌ " + d.error;
+  return;
+}
 
-trackResult.innerHTML=`
+trackingData = d;
+
+trackResult.innerHTML = `
 <b>Status:</b> ${d.status}<br>
 <b>Location:</b> ${d.location}<br>
 <b>Customer:</b> ${d.customer}<br>
@@ -268,41 +282,15 @@ trackResult.innerHTML=`
 <b>Amount:</b> ₹${d.amount}
 `;
 
-saveBtn.style.display="inline-block";
+saveBtn.style.display = "inline-block";
 
-});
-}
-
-// SAVE
-function saveTracking(){
-
-if(!trackingData){alert("No data");return;}
-
-fetch(API_URL,{
-method:"POST",
-body:JSON.stringify({
-type:"saveTracking",
-order_id:trackingData.order_id,
-tracking:trackingData.tracking,
-status:trackingData.status,
-location:trackingData.location,
-customer:trackingData.customer,
-state:trackingData.state,
-amount:trackingData.amount,
-payment:trackingData.payment
 })
-})
-.then(()=>{
-
-alert("Saved ✅");
-saveBtn.style.display="none";
-
+.catch(err=>{
+  console.error(err);
+  trackResult.innerHTML = "❌ Fetch Error";
 });
-}
 
-// AUTO LOAD
-setInterval(loadDashboard,3000);
-loadDashboard();
+}
 
 </script>
 
