@@ -100,7 +100,7 @@ input { padding:10px; width:90%; margin:5px; border-radius:6px; border:1px solid
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyeb87YRSiiNBh_Gjvd84RTWCoONrxrTBRk77ez9Zc1XcGKirPrLGdzKNQQTW_hgR7o/exec"; // 🔥 IMPORTANT
+const API_URL = "https://script.google.com/macros/s/AKfycbztdwECuW8Rr9QBJZYSeY85J30G-caaf1As15k2GH_2FINu6rA3yWGdqDsIFN9tQ8Sz/exec"; // 🔥 IMPORTANT
 
 let html5QrCode;
 let orderId="";
@@ -190,18 +190,51 @@ return_total.innerText=d.totalReturn||0;
 
 // LOOKUP
 function searchOrder(){
-let order=lookupInput.value.trim();
-if(!order){alert("Enter Order ID");return;}
+
+let order = document.getElementById("lookupInput").value.trim();
+if(!order){ alert("Enter Order ID"); return; }
+
+let box = document.getElementById("lookupResult");
+box.innerHTML = "Loading...";
 
 fetch(API_URL+"?type=lookup&order_id="+encodeURIComponent(order))
 .then(res=>res.json())
 .then(data=>{
-lookupResult.innerHTML="";
-if(!data.length){lookupResult.innerHTML="No Data";return;}
+
+box.innerHTML = "";
+
+if(!data.length){
+  box.innerHTML = "❌ No Data Found";
+  return;
+}
+
+let totalQty = 0;
+
 data.forEach(item=>{
-lookupResult.innerHTML+=`<div><b>${item.order_id}</b> - ${item.product}</div>`;
+
+  totalQty += Number(item.qty) || 0;
+
+  box.innerHTML += `
+  <div style="padding:10px;border-bottom:1px solid #eee;text-align:left;">
+    <b>Order:</b> ${item.order_id}<br>
+    <b>SKU:</b> ${item.sku}<br>
+    <b>Product:</b> ${item.product}<br>
+    <b>Qty:</b> ${item.qty}
+  </div>
+  `;
 });
+
+// ✅ TOTAL SHOW
+box.innerHTML += `
+<div style="padding:10px;font-weight:bold;">
+Total Qty: ${totalQty}
+</div>`;
+
+})
+.catch(()=>{
+  box.innerHTML = "❌ Error loading data";
 });
+
 }
 
 function clearSearch(){
