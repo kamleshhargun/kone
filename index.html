@@ -164,7 +164,19 @@ input {
 
 <div id="lookupResult" class="lookup-result"></div>
 </div>
+<!-- 📦 ORDER TRACKING -->
+<div class="card">
+<h3>📦 Order Tracking</h3>
 
+<input id="trackOrderId" placeholder="Enter Order ID">
+<input id="trackWaybill" placeholder="Enter Tracking / Waybill">
+
+<button class="search" onclick="trackOrder()">Track</button>
+
+<div id="trackResult" style="margin-top:10px;"></div>
+
+<button class="start" id="saveBtn" onclick="saveTracking()" style="display:none;">Save</button>
+</div>
 </div>
 
 <script>
@@ -344,7 +356,72 @@ document.getElementById("lookupResult").innerHTML="";
 // AUTO REFRESH
 setInterval(loadDashboard,3000);
 loadDashboard();
+let trackingData = null;
 
+// TRACK
+function trackOrder() {
+
+let order = document.getElementById("trackOrderId").value.trim();
+let tracking = document.getElementById("trackWaybill").value.trim();
+
+if(!order || !tracking){
+  alert("Enter Order ID & Tracking");
+  return;
+}
+
+trackResult.innerHTML = "Loading...";
+
+fetch(API_URL+"?type=track&order_id="+encodeURIComponent(order)+"&tracking="+tracking)
+.then(res=>res.json())
+.then(d=>{
+
+if(d.error){
+  trackResult.innerHTML = d.error;
+  return;
+}
+
+trackingData = d;
+
+trackResult.innerHTML = `
+<b>Status:</b> ${d.status}<br>
+<b>Location:</b> ${d.location}<br>
+<b>Customer:</b> ${d.customer}
+`;
+
+saveBtn.style.display = "inline-block";
+
+});
+}
+
+
+// SAVE TO SHEET3
+function saveTracking(){
+
+if(!trackingData){
+  alert("No data to save");
+  return;
+}
+
+fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+type:"saveTracking",
+order_id:trackingData.order_id,
+tracking:trackingData.tracking,
+status:trackingData.status,
+location:trackingData.location,
+customer:trackingData.customer
+})
+})
+.then(res=>res.json())
+.then(()=>{
+
+alert("Saved to Sheet3 ✅");
+saveBtn.style.display="none";
+
+});
+
+}
 </script>
 
 </body>
