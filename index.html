@@ -5,96 +5,21 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body {
-  font-family: 'Segoe UI', Arial;
-  background:#f4f6f9;
-  text-align:center;
-}
-
-.container {
-  max-width:420px;
-  margin:auto;
-  padding:15px;
-}
-
-.card {
-  background:#fff;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
-h2 { margin-bottom:10px; }
-
-#reader video {
-  width:100%!important;
-  height:220px!important;
-  object-fit:cover;
-  border-radius:10px;
-}
-
-button {
-  padding:10px;
-  margin:5px;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-}
-
+body { font-family:'Segoe UI',Arial; background:#f4f6f9; text-align:center; }
+.container { max-width:420px; margin:auto; padding:15px; }
+.card { background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+button { padding:10px; margin:5px; border:none; border-radius:8px; font-weight:bold; }
 .start{background:#28a745;color:#fff;}
 .next{background:#007bff;color:#fff;}
 .stop{background:#dc3545;color:#fff;}
 .manual{background:#444;color:#fff;}
 .search{background:#6f42c1;color:#fff;}
-
-.mode-btn {
-  padding:12px;
-  font-size:16px;
-  margin:5px;
-}
+.mode-btn { padding:12px; font-size:16px; margin:5px; }
 .mode-btn.active { background:#007bff;color:#fff; }
-
-input {
-  padding:10px;
-  width:90%;
-  margin:5px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-
+input { padding:10px; width:90%; margin:5px; border-radius:6px; border:1px solid #ccc; }
+.stat { display:flex; justify-content:space-between; margin-top:8px; }
+.stat span { font-size:18px; font-weight:bold; display:block; }
 #manualBox { display:none; }
-
-.stat {
-  display:flex;
-  justify-content:space-between;
-  margin-top:8px;
-}
-
-.stat div {
-  flex:1;
-  font-size:14px;
-}
-
-.stat span {
-  font-size:18px;
-  font-weight:bold;
-  display:block;
-}
-
-#status {
-  font-weight:bold;
-  margin-top:10px;
-}
-
-.lookup-result {
-  text-align:left;
-  margin-top:10px;
-}
-.lookup-item {
-  padding:8px;
-  border-bottom:1px solid #eee;
-}
 </style>
 </head>
 
@@ -109,20 +34,19 @@ input {
 <h3>📊 Dashboard</h3>
 
 <div class="stat">
-  <div>Today Pickup <span id="pickup_today">0</span></div>
-  <div>Today Return <span id="return_today">0</span></div>
+<div>Today Pickup <span id="pickup_today">0</span></div>
+<div>Today Return <span id="return_today">0</span></div>
 </div>
 
 <div class="stat">
-  <div>Yesterday Pickup <span id="pickup_yesterday">0</span></div>
-  <div>Yesterday Return <span id="return_yesterday">0</span></div>
+<div>Yesterday Pickup <span id="pickup_yesterday">0</span></div>
+<div>Yesterday Return <span id="return_yesterday">0</span></div>
 </div>
 
 <div class="stat">
-  <div>Total Pickup <span id="pickup_total">0</span></div>
-  <div>Total Return <span id="return_total">0</span></div>
+<div>Total Pickup <span id="pickup_total">0</span></div>
+<div>Total Return <span id="return_total">0</span></div>
 </div>
-
 </div>
 
 <!-- MODE -->
@@ -146,126 +70,99 @@ input {
 <!-- MANUAL -->
 <div class="card" id="manualBox">
 <h3>Manual Entry</h3>
-
-<input id="manualOrder" placeholder="Scan / Enter Order ID">
-<input id="manualTracking" placeholder="Scan / Enter Tracking ID">
-
+<input id="manualOrder" placeholder="Order ID">
+<input id="manualTracking" placeholder="Tracking ID">
 <button onclick="submitManual()">Submit</button>
 </div>
 
-<!-- 🔍 ORDER LOOKUP -->
+<!-- 🔍 LOOKUP -->
 <div class="card">
 <h3>🔍 Order Lookup</h3>
-
-<input id="lookupInput" placeholder="Enter Order ID">
-
-<button class="search" id="searchBtn" onclick="searchOrder()">Search</button>
+<input id="lookupInput" placeholder="Order ID">
+<button class="search" onclick="searchOrder()">Search</button>
 <button class="stop" onclick="clearSearch()">Clear</button>
-
-<div id="lookupResult" class="lookup-result"></div>
+<div id="lookupResult"></div>
 </div>
-<!-- 📦 ORDER TRACKING -->
+
+<!-- 📦 TRACKING -->
 <div class="card">
 <h3>📦 Order Tracking</h3>
-
-<input id="trackOrderId" placeholder="Enter Order ID">
-<input id="trackWaybill" placeholder="Enter Tracking / Waybill">
-
+<input id="trackOrderId" placeholder="Order ID">
+<input id="trackWaybill" placeholder="Waybill">
 <button class="search" onclick="trackOrder()">Track</button>
 
-<div id="trackResult" style="margin-top:10px;"></div>
+<div id="trackResult"></div>
 
 <button class="start" id="saveBtn" onclick="saveTracking()" style="display:none;">Save</button>
 </div>
+
 </div>
 
 <script>
+
+const API_URL = "https://script.google.com/macros/s/AKfycbyeb87YRSiiNBh_Gjvd84RTWCoONrxrTBRk77ez9Zc1XcGKirPrLGdzKNQQTW_hgR7o/exec"; // 🔥 IMPORTANT
+
 let html5QrCode;
 let orderId="";
 let mode="Pickup";
-
-const API_URL="https://script.google.com/macros/s/AKfycbyeb87YRSiiNBh_Gjvd84RTWCoONrxrTBRk77ez9Zc1XcGKirPrLGdzKNQQTW_hgR7o/exec";
+let trackingData=null;
 
 const beep=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
 
 // MODE
 function setMode(m){
-  mode=m;
-  pickupBtn.classList.remove("active");
-  returnBtn.classList.remove("active");
-  if(m==="Pickup") pickupBtn.classList.add("active");
-  else returnBtn.classList.add("active");
+mode=m;
+pickupBtn.classList.remove("active");
+returnBtn.classList.remove("active");
+if(m==="Pickup") pickupBtn.classList.add("active");
+else returnBtn.classList.add("active");
 }
 
-// CAMERA FLOW
+// CAMERA
 function startOrder(){
-  html5QrCode=new Html5Qrcode("reader");
-  html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:25,qrbox:{width:250,height:120}},
-    text=>{
-      orderId=text;
-      stopScan();
-      status.innerText="Order Scanned ✅";
-      nextBtn.style.display="inline-block";
-    }
-  );
+html5QrCode=new Html5Qrcode("reader");
+html5QrCode.start({facingMode:"environment"},{fps:25,qrbox:{width:250,height:120}},
+text=>{
+orderId=text;
+stopScan();
+status.innerText="Order Scanned ✅";
+nextBtn.style.display="inline-block";
+});
 }
 
 function startTracking(){
-  html5QrCode=new Html5Qrcode("reader");
-  html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:25,qrbox:{width:250,height:120}},
-    text=>{
-      let tracking=text;
-      stopScan();
-
-      beep.play();
-      if(navigator.vibrate) navigator.vibrate(200);
-
-      sendData(orderId,tracking);
-
-      status.innerText="Done ✅";
-      nextBtn.style.display="none";
-      orderId="";
-    }
-  );
+html5QrCode=new Html5Qrcode("reader");
+html5QrCode.start({facingMode:"environment"},{fps:25,qrbox:{width:250,height:120}},
+text=>{
+let tracking=text;
+stopScan();
+beep.play();
+sendData(orderId,tracking);
+status.innerText="Done ✅";
+nextBtn.style.display="none";
+orderId="";
+});
 }
 
 function stopScan(){
-  if(html5QrCode) html5QrCode.stop().catch(()=>{});
+if(html5QrCode) html5QrCode.stop().catch(()=>{});
 }
 
 // MANUAL
-function openManual(){
-  manualBox.style.display="block";
-  manualOrder.focus();
-}
-
-manualOrder.addEventListener("keypress",e=>{
-  if(e.key==="Enter"){manualTracking.focus();}
-});
-manualTracking.addEventListener("keypress",e=>{
-  if(e.key==="Enter"){submitManual();}
-});
+function openManual(){ manualBox.style.display="block"; }
 
 function submitManual(){
-  let order=manualOrder.value.trim();
-  let tracking=manualTracking.value.trim();
-  if(!order||!tracking){alert("Fill both");return;}
-
-  beep.play();
-  sendData(order,tracking);
-
-  manualOrder.value="";
-  manualTracking.value="";
-  manualBox.style.display="none";
-
-  status.innerText="Manual Done ✅";
+let order=manualOrder.value.trim();
+let tracking=manualTracking.value.trim();
+if(!order||!tracking){alert("Fill both");return;}
+beep.play();
+sendData(order,tracking);
+manualOrder.value="";
+manualTracking.value="";
+manualBox.style.display="none";
 }
 
-// API SEND
+// SEND
 function sendData(order,tracking){
 fetch(API_URL,{
 method:"POST",
@@ -274,9 +171,7 @@ mode:mode.toLowerCase(),
 order_id:order,
 tracking:tracking
 })
-})
-.then(res=>res.json())
-.then(()=>loadDashboard());
+}).then(()=>loadDashboard());
 }
 
 // DASHBOARD
@@ -287,120 +182,68 @@ fetch(API_URL+"?type=stats")
 pickup_today.innerText=d.todayPickup||0;
 pickup_yesterday.innerText=d.yesterdayPickup||0;
 pickup_total.innerText=d.totalPickup||0;
-
 return_today.innerText=d.todayReturn||0;
 return_yesterday.innerText=d.yesterdayReturn||0;
 return_total.innerText=d.totalReturn||0;
 });
 }
 
-// 🔍 ORDER LOOKUP FUNCTION
+// LOOKUP
 function searchOrder(){
-
-let order=document.getElementById("lookupInput").value.trim();
+let order=lookupInput.value.trim();
 if(!order){alert("Enter Order ID");return;}
-
-let btn=document.getElementById("searchBtn");
-btn.innerText="Wait...";
-btn.disabled=true;
 
 fetch(API_URL+"?type=lookup&order_id="+encodeURIComponent(order))
 .then(res=>res.json())
 .then(data=>{
-
-let box=document.getElementById("lookupResult");
-box.innerHTML="";
-
-btn.innerText="Search";
-btn.disabled=false;
-
-if(!data.length){
-  box.innerHTML="No Data Found";
-  return;
-}
-
-let totalQty=0;
-
+lookupResult.innerHTML="";
+if(!data.length){lookupResult.innerHTML="No Data";return;}
 data.forEach(item=>{
-  totalQty+=Number(item.qty)||0;
-
-  box.innerHTML+=`
-  <div class="lookup-item">
-    <b>${item.order_id}</b><br>
-    SKU: ${item.sku}<br>
-    Product: ${item.product}<br>
-    Qty: ${item.qty}
-  </div>`;
+lookupResult.innerHTML+=`<div><b>${item.order_id}</b> - ${item.product}</div>`;
 });
-
-// ✅ TOTAL SHOW
-box.innerHTML+=`
-<div style="padding:10px;font-weight:bold;">
-Total Qty: ${totalQty}
-</div>`;
-
-})
-.catch(()=>{
-  btn.innerText="Search";
-  btn.disabled=false;
 });
-
 }
 
-// ❌ CLEAR
 function clearSearch(){
-document.getElementById("lookupInput").value="";
-document.getElementById("lookupResult").innerHTML="";
+lookupInput.value="";
+lookupResult.innerHTML="";
 }
-
-// AUTO REFRESH
-setInterval(loadDashboard,3000);
-loadDashboard();
-let trackingData = null;
 
 // TRACK
-function trackOrder() {
+function trackOrder(){
+let order=trackOrderId.value.trim();
+let tracking=trackWaybill.value.trim();
 
-let order = document.getElementById("trackOrderId").value.trim();
-let tracking = document.getElementById("trackWaybill").value.trim();
+if(!order||!tracking){alert("Enter both");return;}
 
-if(!order || !tracking){
-  alert("Enter Order ID & Tracking");
-  return;
-}
+trackResult.innerHTML="Loading...";
 
-trackResult.innerHTML = "Loading...";
-
-fetch(API_URL+"?type=track&order_id="+encodeURIComponent(order)+"&tracking="+tracking)
+fetch(API_URL+"?type=track&order_id="+order+"&tracking="+tracking)
 .then(res=>res.json())
 .then(d=>{
 
-if(d.error){
-  trackResult.innerHTML = d.error;
-  return;
-}
+if(d.error){trackResult.innerHTML=d.error;return;}
 
-trackingData = d;
+trackingData=d;
 
-trackResult.innerHTML = `
+trackResult.innerHTML=`
 <b>Status:</b> ${d.status}<br>
 <b>Location:</b> ${d.location}<br>
-<b>Customer:</b> ${d.customer}
+<b>Customer:</b> ${d.customer}<br>
+<b>State:</b> ${d.state}<br>
+<b>Payment:</b> ${d.payment}<br>
+<b>Amount:</b> ₹${d.amount}
 `;
 
-saveBtn.style.display = "inline-block";
+saveBtn.style.display="inline-block";
 
 });
 }
 
-
-// SAVE TO SHEET3
+// SAVE
 function saveTracking(){
 
-if(!trackingData){
-  alert("No data to save");
-  return;
-}
+if(!trackingData){alert("No data");return;}
 
 fetch(API_URL,{
 method:"POST",
@@ -410,18 +253,24 @@ order_id:trackingData.order_id,
 tracking:trackingData.tracking,
 status:trackingData.status,
 location:trackingData.location,
-customer:trackingData.customer
+customer:trackingData.customer,
+state:trackingData.state,
+amount:trackingData.amount,
+payment:trackingData.payment
 })
 })
-.then(res=>res.json())
 .then(()=>{
 
-alert("Saved to Sheet3 ✅");
+alert("Saved ✅");
 saveBtn.style.display="none";
 
 });
-
 }
+
+// AUTO LOAD
+setInterval(loadDashboard,3000);
+loadDashboard();
+
 </script>
 
 </body>
