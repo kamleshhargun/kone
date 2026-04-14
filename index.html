@@ -297,6 +297,18 @@ saveBtn.style.display = "inline-block";
 // AUTO LOAD DASHBOARD
 setInterval(loadDashboard,3000);
 loadDashboard();
+  // 🔥 MANUAL ENTER FLOW FIX
+document.getElementById("manualOrder").addEventListener("keypress", function(e){
+  if(e.key === "Enter"){
+    document.getElementById("manualTracking").focus();
+  }
+});
+
+document.getElementById("manualTracking").addEventListener("keypress", function(e){
+  if(e.key === "Enter"){
+    submitManual();
+  }
+});
 </script>
 
 </body>
