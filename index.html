@@ -434,6 +434,38 @@ document.getElementById("manualTracking").addEventListener("keypress", function(
     submitManual();
   }
 });
+  // SAVE TO SHEET3
+function saveTracking(){
+
+if(!trackingData){
+  alert("No data to save");
+  return;
+}
+
+fetch(API_URL,{
+method:"POST",
+body:JSON.stringify({
+type:"saveTracking",
+order_id:trackingData.order_id,
+tracking:trackingData.tracking,
+status:trackingData.status,
+location:trackingData.location,
+customer:trackingData.customer,
+state:trackingData.state,
+amount:trackingData.amount,
+payment:trackingData.payment
+})
+})
+.then(res=>res.json())
+.then(()=>{
+  alert("Saved to Sheet3 ✅");
+  document.getElementById("saveBtn").style.display="none";
+})
+.catch(()=>{
+  alert("❌ Save Failed");
+});
+
+}
 </script>
 
 </body>
