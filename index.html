@@ -5,21 +5,146 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body { font-family:'Segoe UI',Arial; background:#f4f6f9; text-align:center; }
-.container { max-width:420px; margin:auto; padding:15px; }
-.card { background:#fff; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-button { padding:10px; margin:5px; border:none; border-radius:8px; font-weight:bold; }
-.start{background:#28a745;color:#fff;}
-.next{background:#007bff;color:#fff;}
-.stop{background:#dc3545;color:#fff;}
-.manual{background:#444;color:#fff;}
-.search{background:#6f42c1;color:#fff;}
-.mode-btn { padding:12px; font-size:16px; margin:5px; }
-.mode-btn.active { background:#007bff;color:#fff; }
-input { padding:10px; width:90%; margin:5px; border-radius:6px; border:1px solid #ccc; }
-.stat { display:flex; justify-content:space-between; margin-top:8px; }
-.stat span { font-size:18px; font-weight:bold; display:block; }
-#manualBox { display:none; }
+
+body {
+  font-family: 'Segoe UI', Arial;
+  background: linear-gradient(135deg, #eef2f7, #dfe9f3);
+  text-align: center;
+  margin: 0;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  padding: 15px;
+}
+
+/* CARD UI */
+.card {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 16px;
+  margin-bottom: 15px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* BUTTONS */
+button {
+  padding: 11px;
+  margin: 6px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.start { background: #28a745; color: #fff; }
+.next { background: #007bff; color: #fff; }
+.stop { background: #dc3545; color: #fff; }
+.manual { background: #444; color: #fff; }
+.search { background: #6f42c1; color: #fff; }
+
+/* MODE BUTTON */
+.mode-btn {
+  padding: 12px;
+  font-size: 15px;
+  margin: 5px;
+  border-radius: 10px;
+  background: #f1f1f1;
+}
+
+.mode-btn.active {
+  background: #007bff;
+  color: #fff;
+}
+
+/* INPUT */
+input {
+  padding: 11px;
+  width: 92%;
+  margin: 6px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0,123,255,0.3);
+}
+
+/* STATS */
+.stat {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.stat div {
+  flex: 1;
+  background: #f8f9fa;
+  margin: 3px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.stat span {
+  font-size: 20px;
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* MANUAL BOX */
+#manualBox {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+/* TRACK RESULT */
+#trackResult {
+  margin-top: 10px;
+  text-align: left;
+  font-size: 14px;
+}
+
+/* LOOKUP */
+#lookupResult {
+  text-align: left;
+  margin-top: 10px;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* HEADER */
+h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+/* STATUS */
+#status {
+  font-weight: bold;
+  margin-top: 10px;
+  color: #555;
+}
+
 </style>
 </head>
 
