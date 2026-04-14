@@ -434,7 +434,7 @@ document.getElementById("manualTracking").addEventListener("keypress", function(
     submitManual();
   }
 });
-  // SAVE TO SHEET3
+  // SAVE TO SHEET8
 function saveTracking(){
 
 if(!trackingData){
@@ -458,7 +458,7 @@ payment:trackingData.payment
 })
 .then(res=>res.json())
 .then(()=>{
-  alert("Saved to Sheet3 ✅");
+  alert("Saved to Sheet8 ✅");
   document.getElementById("saveBtn").style.display="none";
 })
 .catch(()=>{
